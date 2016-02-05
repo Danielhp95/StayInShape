@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<enemy>
+  <name>Small Dot</name>
+  <health>30</health>
+  <mana>0</mana>
+</enemy>
