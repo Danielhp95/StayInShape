@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
 using Priority_Queue;
 using System;
+using System.Text;
 
 public class TurnBasedCombat : MonoBehaviour {
 
-    private BattleState currentState;
+    public BattleState currentState;
     private FastPriorityQueue<QueuedEntity> turnQueue;
     private BattleGenerator battleGenerator; // Handles battle initialization
 
@@ -19,7 +20,7 @@ public class TurnBasedCombat : MonoBehaviour {
 
     //Used during a player's turn
     private BaseCharacterClass allyTurnReady;
-    private Entity playerTarget;
+    public int playerTargetIndex { get; set; }
 
 
 	// Use this for initialization
@@ -65,11 +66,12 @@ public class TurnBasedCombat : MonoBehaviour {
                     QueuedEntity allyqe = turnQueue.Dequeue();
                     allyTurnReady = (BaseCharacterClass)allyqe.entity;
                     UIStateController.Instance.enableMenu("initial");
+                    UIStateController.Instance.personaliseMenuToCharacter(allyTurnReady);
                 }
-               
-                //Debug.Log(ally.getName() + "'s turn. HE DOES NOTHING");
                 
-                //turnQueue.Enqueue(new QueuedEntity(allyTurnReady), allyTurnReady.speed);
+                //Debug.Log(ally.characterName() + "'s turn. HE DOES NOTHING");
+                
+                //
                 //currentState = BattleState.WAITING;
                 break;
             case BattleState.ENEMYTURN:
@@ -78,18 +80,33 @@ public class TurnBasedCombat : MonoBehaviour {
                 BaseEnemy enemy = (BaseEnemy)enemyqe.entity;
 
                 // To ensure that dead units are not targeted, filter them out.
+                if (enemy == null)
+                {
+                    Debug.Log("null enemy");
+                }
                 Entity target   = enemy.strategy(Array.FindAll(alliedCharacters, e => !e.isDead()),
                                                  Array.FindAll(enemies, e => !e.isDead()));
 
 
-                Debug.Log(enemy.getName() + " Attacks " + target.getName());
+                Debug.Log(enemy.getName() + " Attacks " + target.getName() + " for " + enemy.attack + " damage");
                 target.takeDamage(enemy.attack);
+                printHealths(alliedCharacters);
 
-                turnQueue.Enqueue(enemyqe, enemy.speed);
+                turnQueue.Enqueue(new QueuedEntity(enemy), enemy.speed);
                 currentState = BattleState.WAITING;
                 break;
             case BattleState.CALCDAMAGE:
                 // Calculates dmg to target(s)
+                BattleAbilityUseHandler abilityHandler = new BattleAbilityUseHandler(ref allyTurnReady, playerTargetIndex,
+                                                                                      ref alliedCharacters, ref enemies);
+                abilityHandler.calculateDamage();
+                int castingTIme = abilityHandler.calculateCastingTime();
+                this.playerTargetIndex = -1;
+
+                turnQueue.Enqueue(new QueuedEntity(allyTurnReady), castingTIme);
+                this.allyTurnReady = null;
+                currentState = BattleState.WAITING;
+                printHealths(enemies);
                 break;
             case BattleState.ADDSTATUSEFFECT:
                 // Adds special status such as poison.
@@ -98,6 +115,7 @@ public class TurnBasedCombat : MonoBehaviour {
                 /* All enemies have been defeated, we store the relevant information in GameInformation
                    and we get back to the map */
                 //GameInformation.alliedCharacters = alliedCharacters;
+                Debug.Log("GAME WON");
                 break;
             case BattleState.LOSE:
                 // All allied characters have been defeated.
@@ -112,15 +130,31 @@ public class TurnBasedCombat : MonoBehaviour {
 
     }
 
+    /* TODO: CHANGE THIS SO IT WORKS WITH ABILITIES
+
+        return value indicates if action could have been carried out
+    */
+    public bool performAction(PossibleAction posAc)
+    {
+        if (posAc == PossibleAction.ATTACK)
+        {
+            currentState = BattleState.CALCDAMAGE;
+            return true;
+        }
+        return false;
+    }
 
     /*
-        Checks if any Entity is ready to play a turn
+        Checks if any Entity is ready to play a tudrn
         and changes the battle state accordingly.
+        NOTE: makes use of the property that the queue
+              contains either characters or enemies.
     */
     private void checkForTurn()
     {
         QueuedEntity head = turnQueue.peek();
-        if (head.Priority <= 0)
+        if (head.Priority <= 0 && !(currentState == BattleState.CALCDAMAGE ||
+                                    currentState == BattleState.ENEMYTURN)) 
         {
             currentState = (head.entity is BaseCharacterClass) ? BattleState.PLAYERTURN : BattleState.ENEMYTURN;
         }
@@ -135,7 +169,6 @@ public class TurnBasedCombat : MonoBehaviour {
         turnQueue.reducePriorities(elapsedFrameTime);
     }
 
-
     /*
       Try to make it so that this function gets called when health of an entity is reduced on any way.
 
@@ -146,9 +179,9 @@ public class TurnBasedCombat : MonoBehaviour {
     {
         checksIfDead(alliedCharacters, BattleState.LOSE);
         checksIfDead(enemies, BattleState.WIN);
+
     }
 
-  
     private void checksIfDead(Entity[] entities, BattleState newState)
     {
         foreach (Entity e in entities)
@@ -158,10 +191,19 @@ public class TurnBasedCombat : MonoBehaviour {
                 return;
             }
         }
-        foreach (Entity e in entities)
-        {
-            Debug.Log("HEALTH of " + e.getName() + ": " + e.health);
-        }
         currentState = newState;
     }
+
+
+    // DEBUGGING
+    public void printHealths(Entity[] e)
+    {
+        StringBuilder builder = new StringBuilder();
+        foreach (Entity en in e)
+        {
+            builder.Append(en.getName() + ": " + en.health + " ");
+        }
+        Debug.Log(builder.ToString());
+    }
+
 }

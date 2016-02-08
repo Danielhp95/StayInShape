@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 /*
     Most abstract class that encapsulates units such as enemies and characters. Contains the most Basic 
@@ -25,9 +26,12 @@ public abstract class Entity
     }
 
     // TODO: put interesting stuff in this function
+    /*
+        Reduces health by the input amount. Health cannot go below 0.
+    */
     public void takeDamage(int damage)
     {
-        health -= damage;
+        health = (damage < health) ? (health - damage) : 0;
     }
 
 

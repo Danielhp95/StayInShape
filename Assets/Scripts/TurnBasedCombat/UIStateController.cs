@@ -1,12 +1,20 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System;
 
 public class UIStateController : MonoBehaviour {
-
+ 
+    // Singleton patter. Perhaps not the smart choice, only used once as singleton...
     public static UIStateController Instance;
 
+    // Controls the states and information to forward to TurnBasedCombat upon completition.
     private MenuState currentState;
+    private PossibleAction p;
+
+    //Turn based combat;
+    public GameObject battleController;
+    private TurnBasedCombat combat;
 
     /*
         This canvas comprise the UI for the battle.
@@ -23,20 +31,26 @@ public class UIStateController : MonoBehaviour {
     public GameObject medicines;
     public GameObject equipment;
 
+    // This is the only menu that will be visible 
     private GameObject currentMenu;
+    // The character is necessary to change the text according to its abilities
+    private BaseCharacterClass allyTurnReady;
 
     // Use this for initialization
-    void Awake () {
+    void Start () {
         Instance = this;
         currentMenu = waiting;
         currentState = MenuState.WAITING;
         currentMenu.SetActive(true);
+        combat = battleController.GetComponent<TurnBasedCombat>();
+        
 	}
 	
 	/*
         Will be used to handle Key input for traversing the different menus.
     */
 	void Update () {
+        // Note how there's no UI button to go back on a menu.
         if (Input.GetKeyDown(KeyCode.Space)) {
             MenuState previous = getPreviousState(currentState);
             changeMenuState(previous);
@@ -59,6 +73,22 @@ public class UIStateController : MonoBehaviour {
         }
     }
 
+
+    public void personaliseMenuToCharacter(BaseCharacterClass c)
+    {
+        this.allyTurnReady = c;
+        changeMenuText();
+    }
+
+    /*
+        Changes the text of the UI to reflect the current character abilities and overall items.
+        It also updates the text to show possible targets.
+    */
+    private void changeMenuText()
+    {
+
+    }
+
     /* Functions that deal menu movement through keys */
     private void handleQPress()
     {
@@ -66,6 +96,9 @@ public class UIStateController : MonoBehaviour {
         {
 
             case MenuState.ATTACK:
+                //Target will be the first enemy / ally
+                finishTurnAndSetActions(0, PossibleAction.ATTACK);
+                break;
             case MenuState.SPECIAL:
             case MenuState.ABILITIES:
             case MenuState.ITEMS:
@@ -86,12 +119,22 @@ public class UIStateController : MonoBehaviour {
 
     }
 
+    // Used at the last step of the menu. Both ability and target have been selected
+    private void finishTurnAndSetActions(int playerTargetIndex, PossibleAction posAc) 
+    {
+        combat.playerTargetIndex = playerTargetIndex;
+        combat.performAction(posAc);
+        changeMenuState(MenuState.WAITING);
+    }
+
     private void handleWPress()
     {
         switch (currentState)
         {
 
             case MenuState.ATTACK:
+                finishTurnAndSetActions(1, PossibleAction.ATTACK);
+                break;
             case MenuState.SPECIAL:
             case MenuState.ABILITIES:
             case MenuState.ITEMS:
@@ -117,6 +160,8 @@ public class UIStateController : MonoBehaviour {
         {
 
             case MenuState.ATTACK:
+                finishTurnAndSetActions(2, PossibleAction.ATTACK);
+                break;
             case MenuState.SPECIAL:
             case MenuState.ABILITIES:
             case MenuState.ITEMS:
@@ -142,7 +187,8 @@ public class UIStateController : MonoBehaviour {
         {
 
             case MenuState.ATTACK:
-                // ATTACKS 4th enemy
+                finishTurnAndSetActions(3, PossibleAction.ATTACK);
+                break;
             case MenuState.SPECIAL:
                 //changeMenuState(MenuState.SPECIAL);
                 break;

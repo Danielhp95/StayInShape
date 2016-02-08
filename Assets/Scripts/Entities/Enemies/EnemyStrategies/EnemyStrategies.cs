@@ -19,14 +19,14 @@ public class EnemyStrategies  {
     {
         int totalPresence = 0;
         foreach (BaseCharacterClass c in characters) {
-            totalPresence += c.getPresence();
+            totalPresence += c.presence;
         }
 
         int random = Random.Range(0, totalPresence);
         int presenceAccumulator = 0;
         foreach (BaseCharacterClass c in characters)
         {
-            int characterPresence = c.getPresence();
+            int characterPresence = c.presence;
             if (random <= characterPresence + presenceAccumulator)
             {
                 return c;
@@ -45,7 +45,7 @@ public class EnemyStrategies  {
         BaseCharacterClass target = characters[0];
         for (int i = 1; i < characters.Length; i++)
         {
-            if (target.getPresence() < characters[i].getPresence())
+            if (target.presence < characters[i].presence)
             {
                 target = characters[i];
             }
