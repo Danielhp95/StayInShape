@@ -17,7 +17,7 @@ public class BaseWarriovalClass : BaseCharacterClass {
 
         health = 18;
 
-        weapon = new BaseSword("Sword", 18, 6);
+        weapon = new BaseSword("Sword", 18, 10);
     }
 
 }

@@ -420,16 +420,6 @@ namespace Priority_Queue
         }
 
 
-        // Propagates a priority reduction over the whole queue, used in the battle system.
-        public bool reducePriorities(float amountToDeduct)
-        {
-            for (int i= 1; i <= Count; i++)
-            {
-                _nodes[i].Priority -= amountToDeduct;
-            }
-            return true;
-        }
-
         // Returns the head of the queue without removing it. Returns null if the queue is empty
         public T peek()
         {

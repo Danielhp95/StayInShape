@@ -25,7 +25,7 @@ public class BaseEnemy : Entity {
         this.name = name;
         this.attack = attack;
         this.strategy = strategy;
-        this.speed = Random.Range(3, 7); //TODO: CHANGE THIS
+        this.speed = Random.Range(9, 15); //TODO: CHANGE THIS
         this.xp = 20;
     }
 

@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Text;
 using System;
 
 public class UIStateController : MonoBehaviour {
- 
+
+    const int NUMBER_BUTTONS_PER_MENU = 4;
+
     // Singleton patter. Perhaps not the smart choice, only used once as singleton...
     public static UIStateController Instance;
 
@@ -30,6 +33,9 @@ public class UIStateController : MonoBehaviour {
     public GameObject throwables;
     public GameObject medicines;
     public GameObject equipment;
+    public Text characterName;
+    public Text allies;
+    public Text enemies;
 
     // This is the only menu that will be visible 
     private GameObject currentMenu;
@@ -38,12 +44,16 @@ public class UIStateController : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
+        // Start singleton pattern
         Instance = this;
+
+        // Activate first menu.
         currentMenu = waiting;
         currentState = MenuState.WAITING;
         currentMenu.SetActive(true);
+        characterName.text = "";
+
         combat = battleController.GetComponent<TurnBasedCombat>();
-        
 	}
 	
 	/*
@@ -73,10 +83,14 @@ public class UIStateController : MonoBehaviour {
         }
     }
 
-
+    /*
+    Changes the text of the UI to reflect the current character abilities and overall items.
+    It also updates the text to show possible targets.
+    */
     public void personaliseMenuToCharacter(BaseCharacterClass c)
     {
         this.allyTurnReady = c;
+        characterName.text = allyTurnReady.getName();
         changeMenuText();
     }
 
@@ -86,6 +100,14 @@ public class UIStateController : MonoBehaviour {
     */
     private void changeMenuText()
     {
+        // Change text to reflect the names of the enemies on choose target.
+        BaseEnemy[] enemies = combat.enemies;
+
+        for (int i = 0; i < NUMBER_BUTTONS_PER_MENU; ++i)
+        {
+            Transform button = chooseTarget.transform.Find("Button" + (i + 1));
+            button.GetComponentInChildren<Text>().text = enemies[i].getName();
+        }
 
     }
 
@@ -97,7 +119,7 @@ public class UIStateController : MonoBehaviour {
 
             case MenuState.ATTACK:
                 //Target will be the first enemy / ally
-                finishTurnAndSetActions(0, PossibleAction.ATTACK);
+                attemptFinishTurnAndSetActions(0, PossibleAction.ATTACK);
                 break;
             case MenuState.SPECIAL:
             case MenuState.ABILITIES:
@@ -120,11 +142,16 @@ public class UIStateController : MonoBehaviour {
     }
 
     // Used at the last step of the menu. Both ability and target have been selected
-    private void finishTurnAndSetActions(int playerTargetIndex, PossibleAction posAc) 
+    private void attemptFinishTurnAndSetActions(int playerTargetIndex, PossibleAction posAc) 
     {
-        combat.playerTargetIndex = playerTargetIndex;
-        combat.performAction(posAc);
-        changeMenuState(MenuState.WAITING);
+        if (combat.isValidTarget(playerTargetIndex, posAc))
+        {
+            combat.playerTargetIndex = playerTargetIndex;
+            combat.performAction(posAc);
+            characterName.text = "";
+            changeMenuState(MenuState.WAITING);
+        }
+
     }
 
     private void handleWPress()
@@ -133,7 +160,7 @@ public class UIStateController : MonoBehaviour {
         {
 
             case MenuState.ATTACK:
-                finishTurnAndSetActions(1, PossibleAction.ATTACK);
+                attemptFinishTurnAndSetActions(1, PossibleAction.ATTACK);
                 break;
             case MenuState.SPECIAL:
             case MenuState.ABILITIES:
@@ -160,7 +187,7 @@ public class UIStateController : MonoBehaviour {
         {
 
             case MenuState.ATTACK:
-                finishTurnAndSetActions(2, PossibleAction.ATTACK);
+                attemptFinishTurnAndSetActions(2, PossibleAction.ATTACK);
                 break;
             case MenuState.SPECIAL:
             case MenuState.ABILITIES:
@@ -187,7 +214,7 @@ public class UIStateController : MonoBehaviour {
         {
 
             case MenuState.ATTACK:
-                finishTurnAndSetActions(3, PossibleAction.ATTACK);
+                attemptFinishTurnAndSetActions(3, PossibleAction.ATTACK);
                 break;
             case MenuState.SPECIAL:
                 //changeMenuState(MenuState.SPECIAL);
@@ -336,5 +363,31 @@ public class UIStateController : MonoBehaviour {
                 break;
         }
         return previous;
+    }
+
+    /*
+        This function will also be used to see the current character
+        has passed out. In such case, it's turn will be finished.
+    */
+    public void updateCharacterAndEnemiesText()
+    {
+        if (allyTurnReady != null && allyTurnReady.isDead()) {
+            // Character died, sad life.
+            attemptFinishTurnAndSetActions(-1, PossibleAction.CHARACTER_DIED);
+        }
+
+        StringBuilder alliesBuilder = new StringBuilder();
+        foreach (Entity e in combat.alliedCharacters)
+        {
+            alliesBuilder.Append(e.getName() + ": " + e.health + "   ");
+        }
+        allies.text = alliesBuilder.ToString();
+
+        StringBuilder enemisBuilder = new StringBuilder();
+        foreach (Entity e in combat.enemies)
+        {
+            enemisBuilder.Append(e.getName() + ": " + e.health + "   ");
+        }
+        enemies.text = enemisBuilder.ToString();
     }
 }

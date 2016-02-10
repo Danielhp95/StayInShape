@@ -24,7 +24,6 @@ class BattleAbilityUseHandler {
     {
         int damage = character.basicAttack(enemies[playerTargetIndex]);
         enemies[playerTargetIndex].takeDamage(damage);
-        Debug.Log(enemies[playerTargetIndex].getName() + " took: " + damage);
     }
 
     internal int calculateCastingTime()
